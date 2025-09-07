@@ -5,108 +5,84 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: jgiancol <jgiancol@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/08/22 13:22:55 by jgiancol          #+#    #+#             */
-/*   Updated: 2025/08/22 13:52:16 by jgiancol         ###   ########.fr       */
+/*   Created: 2025/09/01 15:01:04 by jgiancol          #+#    #+#             */
+/*   Updated: 2025/09/01 15:15:45 by jgiancol         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line_bonus.h"
 
-void	polish_list(t_list **list)
+static char	*ft_strjoin_free(char *s1, const char *s2)
 {
-	t_list	*last_node;
-	t_list	*clean_node;
-	int		i;
-	int		j;
-	char	*buf;
+	char	*result;
 
-	buf = malloc(BUFFER_SIZE + 1);
-	clean_node = malloc(sizeof(t_list));
-	if (NULL == buf || NULL == clean_node)
-		return ;
-	last_node = find_last_node(*list);
-	i = 0;
-	j = 0;
-	while (last_node->content[i] && last_node->content[i] != '\n')
-		++i;
-	if (last_node->content[i] == '\n')
-		i++;
-	while (last_node->content[i])
-		buf[j++] = last_node->content[i++];
-	buf[j] = '\0';
-	clean_node->content = buf;
-	clean_node->next = NULL;
-	dealloc(list, clean_node, buf);
+	result = ft_strjoin(s1, s2);
+	free(s1);
+	return (result);
 }
 
-char	*extract_line(t_list *list)
+static char	*extract_line(char **stock)
 {
-	int		str_len;
-	char	*next_str;
+	int		len;
+	char	*line;
+	char	*new_stock;
 
-	if (NULL == list)
+	if (*stock == NULL || **stock == '\0')
 		return (NULL);
-	str_len = len_to_newline(list);
-	next_str = malloc(str_len + 1);
-	if (NULL == next_str)
+	len = 0;
+	while ((*stock)[len] && (*stock)[len] != '\n')
+		len++;
+	if ((*stock)[len] == '\n')
+		len++;
+	line = malloc(len + 1);
+	if (!line)
 		return (NULL);
-	copy_str(list, next_str);
-	return (next_str);
+	ft_memcpy(line, *stock, len);
+	line[len] = '\0';
+	new_stock = ft_strdup(*stock + len);
+	free(*stock);
+	*stock = new_stock;
+	return (line);
 }
 
-void	append(t_list **list, char *buf, int fd)
+static int	read_to_stock(int fd, char **stock, char *buf)
 {
-	t_list	*new_node;
-	t_list	*last_node;
+	ssize_t	bytes;
 
-	last_node = find_last_node(list[fd]);
-	new_node = malloc(sizeof(t_list));
-	if (NULL == new_node)
-		return ;
-	if (NULL == last_node)
-		list[fd] = new_node;
-	else
-		last_node->next = new_node;
-	new_node->content = buf;
-	new_node->next = NULL;
-}
-
-void	create_list(t_list **list, int fd)
-{
-	int		char_read;
-	char	*buf;
-
-	while (!found_newline(list[fd]))
+	bytes = read(fd, buf, BUFFER_SIZE);
+	if (bytes > 0)
 	{
-		buf = malloc(BUFFER_SIZE + 1);
-		if (NULL == buf)
-			return ;
-		char_read = read(fd, buf, BUFFER_SIZE);
-		if (char_read <= 0)
-		{
-			free(buf);
-			return ;
-		}
-		buf[char_read] = '\0';
-		append(list, buf, fd);
+		buf[bytes] = '\0';
+		*stock = ft_strjoin_free(*stock, buf);
+		if (!*stock)
+			return (0);
 	}
+	return (bytes);
 }
 
 char	*get_next_line(int fd)
 {
-	static t_list	*list[4096];
-	char			*next_line;
+	static char	*stock[MAX_FD];
+	char		*buf;
+	ssize_t		bytes;
 
-	if (fd < 0 || fd > 4095 || BUFFER_SIZE <= 0 || read(fd, &next_line, 0) < 0)
+	if (fd < 0 || fd >= MAX_FD || BUFFER_SIZE <= 0)
+		return (NULL);
+	if (stock[fd] == NULL)
+		stock[fd] = NULL;
+	buf = malloc(BUFFER_SIZE + 1);
+	if (!buf)
+		return (NULL);
+	bytes = 1;
+	while (!ft_strchr(stock[fd], '\n') && bytes > 0)
+		bytes = read_to_stock(fd, &stock[fd], buf);
+	free(buf);
+	if (bytes < 0 || (bytes == 0 && (!stock[fd] || *stock[fd] == '\0')))
 	{
-		if (fd >= 0 && fd <= 4095 && list[fd])
-			dealloc(&list[fd], NULL, NULL);
+		if (stock[fd])
+			free(stock[fd]);
+		stock[fd] = NULL;
 		return (NULL);
 	}
-	create_list(list, fd);
-	if (list[fd] == NULL)
-		return (NULL);
-	next_line = extract_line(list[fd]);
-	polish_list(&list[fd]);
-	return (next_line);
+	return (extract_line(&stock[fd]));
 }

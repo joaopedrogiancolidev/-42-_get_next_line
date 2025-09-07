@@ -5,33 +5,30 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: jgiancol <jgiancol@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/08/22 13:23:03 by jgiancol          #+#    #+#             */
-/*   Updated: 2025/08/22 13:46:48 by jgiancol         ###   ########.fr       */
+/*   Created: 2025/09/01 15:01:39 by jgiancol          #+#    #+#             */
+/*   Updated: 2025/09/01 15:16:34 by jgiancol         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef GET_NEXT_LINE_BONUS_H
 # define GET_NEXT_LINE_BONUS_H
-# ifndef BUFFER_SIZE
-#  define BUFFER_SIZE 3
-# endif
+
 # include <stdlib.h>
 # include <unistd.h>
 
-typedef struct s_list
-{
-	char			*content;
-	struct s_list	*next;
-}				t_list;
+# ifndef BUFFER_SIZE
+#  define BUFFER_SIZE 42
+# endif
 
-int		found_newline(t_list *list);
-t_list	*find_last_node(t_list *list);
-char	*extract_line(t_list *list);
-void	copy_str(t_list *list, char *str);
-int		len_to_newline(t_list *list);
-void	polish_list(t_list **list);
+# ifndef MAX_FD
+#  define MAX_FD 1024
+# endif
+
+size_t	ft_strlen(const char *s);
+char	*ft_strchr(const char *s, int c);
+char	*ft_strjoin(char const *s1, char const *s2);
+char	*ft_strdup(const char *s);
+void	*ft_memcpy(void *dest, const void *src, size_t n);
 char	*get_next_line(int fd);
-void	dealloc(t_list **list, t_list *clean_node, char *buf);
-void	create_list(t_list **list, int fd);
 
 #endif
